@@ -24,24 +24,7 @@ async def my_sticker(message: types.Message):
 @dp.message_handler(commands=['durack'])
 async def durak(message: types.Message):
     global players
-    cards = mix()
-    a,b = distribution(cards)
-    players[message.from_user.id] = {
-        "cards": cards,
-        "player": a,
-        "bot_c": b,
-        "trum":  cards[-1],
-        "move":  first_walks(a,b,cards[-1]),
-        "table": [],
-        "car": 0,
-        "card_request": True,
-        "podkidat": True,
-        "kb_podkid": False,
-        "bitca": True,
-        "zabrat": False,
-        "not_opt": True, 
-        "p":0,"a":0,"b":0
-    }
+    players[message.from_user.id] = new()
     await asyncio.create_task(game(message))
     try:
         await asyncio.create_task(card(message))
@@ -52,16 +35,14 @@ async def durak(message: types.Message):
 
 async def game(message):
     global deck, players
-    await message.answer(text=first_walks_text(players[message.from_user.id]["player"], players[message.from_user.id]["bot_c"], players[message.from_user.id]["trum"]))
-    
-    while not((players[message.from_user.id]["player"]==[] or players[message.from_user.id]["bot_c"]==[])and players[message.from_user.id]["cards"]==[]):
+    while not((players[message.from_user.id]["player"]==[] or players[message.from_user.id]["bot"]==[])and players[message.from_user.id]["cards"]==[]):
         players[message.from_user.id]["not_opt"] = True
         if players[message.from_user.id]["move"] == "player":
             if players[message.from_user.id]["table"] == []:
-                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"]),
+                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"],players[message.from_user.id]["cards"]),
                                     reply_markup = card_kb(players[message.from_user.id]["player"]))
-                
-                await message.answer(text="Виберіть чим бажаете походити: ")
+                if players[message.from_user.id]["text"]!="text":await message.answer(text=players[message.from_user.id]["text"]);players[message.from_user.id]["text"]="text"
+
                 while players[message.from_user.id]["card_request"]: await asyncio.sleep(1)
                 players[message.from_user.id]["p"] = players[message.from_user.id]["car"]
                 players[message.from_user.id]["card_request"] = True
@@ -70,12 +51,10 @@ async def game(message):
                 players[message.from_user.id]["car"] = "0"
                 players[message.from_user.id]["player"].remove(players[message.from_user.id]["p"])
                 players[message.from_user.id]["table"].append(players[message.from_user.id]["p"])
-
-            else:
-                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"]),
+            elif players[message.from_user.id]["bot"]!=[]:
+                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"],players[message.from_user.id]["cards"]),
                                      reply_markup = card_kb_P(players[message.from_user.id]["player"]))
                 while True:
-                    await message.answer(text="Виберіть що бажаете підкинути: ")
                     while players[message.from_user.id]["podkidat"]: await asyncio.sleep(1)
 
                     players[message.from_user.id]["p"] = players[message.from_user.id]["car"]
@@ -85,7 +64,7 @@ async def game(message):
                     players[message.from_user.id]["card_request"] = True
 
                     if players[message.from_user.id]["kb_podkid"]:
-                        next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot_c"],players[message.from_user.id]["player"])
+                        next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot"],players[message.from_user.id]["player"])
                         players[message.from_user.id]["move"] = "bot"
                         players[message.from_user.id]["table"]=[]
                         players[message.from_user.id]["kb_podkid"]=False
@@ -96,32 +75,44 @@ async def game(message):
                             players[message.from_user.id]["player"].remove(players[message.from_user.id]["p"])
                             players[message.from_user.id]["table"].append(players[message.from_user.id]["p"])
                             break
-                        else: await message.answer(text="Пидкинути карту можливо якщо таке значеня э на столи!")
+                        else: 
+                            await message.answer("Спробуйте иншу карту!")
+            else:
+                await message.answer(text="Пидкинути карту немождиво у противника нема карт!")
+                next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot"],players[message.from_user.id]["player"])
+                players[message.from_user.id]["move"] = "bot"
+                players[message.from_user.id]["table"]=[]
+
 
             if players[message.from_user.id]["not_opt"]:
-                players[message.from_user.id]["b"] = logick_bot(players[message.from_user.id]["p"], players[message.from_user.id]["bot_c"], players[message.from_user.id]["trum"])
+                players[message.from_user.id]["b"] = logick_bot(players[message.from_user.id]["p"], players[message.from_user.id]["bot"], players[message.from_user.id]["trum"])
                 if players[message.from_user.id]["b"] == False:
-                    await message.answer("Бот забираэ карти!")
-                    players[message.from_user.id]["bot_c"] += players[message.from_user.id]["table"]
+                    await message.answer("Противник забираэ карти!")
+                    players[message.from_user.id]["bot"] += players[message.from_user.id]["table"]
                     players[message.from_user.id]["table"]  = []
                     players[message.from_user.id]["not_opt"]= False
-                    next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot_c"],players[message.from_user.id]["player"])
+                    next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot"],players[message.from_user.id]["player"])
                 else:
-                    await message.answer(text="Бот бьє картою " + players[message.from_user.id]["b"])
+                    await message.answer(text="Противник бьє картою " + players[message.from_user.id]["b"])
                     players[message.from_user.id]["table"].append(players[message.from_user.id]["b"])
-                    players[message.from_user.id]["bot_c"].remove(players[message.from_user.id]["b"])
+                    players[message.from_user.id]["bot"].remove(players[message.from_user.id]["b"])
     
         elif players[message.from_user.id]["move"] == "bot":
-            players[message.from_user.id]["a"], players[message.from_user.id]["b"] = hod_bot(players[message.from_user.id]["table"],players[message.from_user.id]["bot_c"],players[message.from_user.id]["trum"])
+            if players[message.from_user.id]["text"]!="text": await message.answer(text=players[message.from_user.id]["text"]);players[message.from_user.id]["text"]="text"
+
+            if players[message.from_user.id]["player"]!= []: 
+                players[message.from_user.id]["a"],players[message.from_user.id]["b"] = \
+                hod_bot(players[message.from_user.id]["table"],players[message.from_user.id]["bot"],players[message.from_user.id]["trum"])
+            else: players[message.from_user.id]["a"] = False
+
             if players[message.from_user.id]["a"] != False:
-                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"]),
+                await message.answer(print_inf(players[message.from_user.id]["table"],players[message.from_user.id]["trum"],players[message.from_user.id]["cards"]),
                                      reply_markup = card_kb_Z(players[message.from_user.id]["player"]))
-                await message.answer(text = players[message.from_user.id]["a"])
-                players[message.from_user.id]["bot_c"].remove(players[message.from_user.id]["b"])
+
+                players[message.from_user.id]["bot"].remove(players[message.from_user.id]["b"])
                 players[message.from_user.id]["table"].append(players[message.from_user.id]["b"])
                 while True:
-                    await message.answer(text="Введіть чим бажаете побити або Натисніть забрать: ",
-                                         reply_markup = card_kb_Z(players[message.from_user.id]["player"]))
+                    await message.answer(text = players[message.from_user.id]["a"], reply_markup = card_kb_Z(players[message.from_user.id]["player"]))
                     while players[message.from_user.id]["bitca"]: await asyncio.sleep(1)
 
                     players[message.from_user.id]["p"] = players[message.from_user.id]["car"]
@@ -131,9 +122,8 @@ async def game(message):
                     players[message.from_user.id]["car"] = "0"
 
                     if players[message.from_user.id]["zabrat"]:
-                        await message.answer("Ви забираете карти!")
                         players[message.from_user.id]["player"] += players[message.from_user.id]["table"]
-                        next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot_c"],players[message.from_user.id]["player"])
+                        next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot"],players[message.from_user.id]["player"])
                         players[message.from_user.id]["zabrat"] = False
                         players[message.from_user.id]["table"] = []
                         break
@@ -153,11 +143,12 @@ async def game(message):
                     else:
                         await message.answer("Спробуйте иншу карту!") 
             else:
+                await message.answer("Противнику нема що підкидати!")
+                next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot"],players[message.from_user.id]["player"])
                 players[message.from_user.id]["move"] = "player"
-                next_raund(players[message.from_user.id]["cards"],players[message.from_user.id]["bot_c"],players[message.from_user.id]["player"])
                 players[message.from_user.id]["table"] = []
-                await message.answer("Боту нема що підкидати!")
-    await message.answer(text = game_over(players[message.from_user.id]["player"],players[message.from_user.id]["bot_c"]), reply_markup=start_kb())
+
+    await message.answer(text = game_over(players[message.from_user.id]["player"],players[message.from_user.id]["bot"]), reply_markup=start_kb())
     del players[message.from_user.id]
 
 @dp.message_handler(lambda message: message.from_user.id in players and message.text in players[message.from_user.id]["player"] and players[message.from_user.id]["card_request"])
@@ -184,7 +175,7 @@ async def bot_podkid(message):
 @dp.message_handler(lambda message: message.from_user.id in players and not message.text in players[message.from_user.id]["player"] and players[message.from_user.id]["card_request"])
 async def no_cards(message):
     if not message.text in players[message.from_user.id]["player"] and players[message.from_user.id]["card_request"]:
-        await message.answer(text="Ви не вибрили карту а ввели з клавіатури!")
+        await message.answer(text="У вас нема токої карти!")
 
 @dp.message_handler()
 async def audio(message: types.Message): 
